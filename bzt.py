@@ -28,8 +28,6 @@ class general(threading.Thread):
 		N = 7
 		M = 2
 	   
-		STAGE = 1
-
 		def __init__(self,iscommander,istraitor,id) :
 				threading.Thread.__init__(self)
 				self.isCommander = iscommander
@@ -48,22 +46,20 @@ class general(threading.Thread):
 						self.send_command(":%d" % (MESSAGE))
 						self.finish = True
 				else :
-						# exchange msgs
-						while general.STAGE == 1:
-								msg = self.recv()
-								if msg is None : break
-								self.messages.append(msg)
-								self.send_command(msg)
-					   
-						#thread_print(self,str(self.messages))
-					   
 						''' msg_num = 1 + (n-2) + (n-2)(n-3) + ... '''
 						num = reduce(lambda x,y:x+y,[reduce(lambda x,y:x*y, i) \
 									for i in [[general.N-2-m1 for m1 in range(0,m+1)]  \
 										for m in range(0,general.M)]])+1
 										
+						# exchange msgs
+						while num > len(self.messages):
+								msg = self.recv()
+								self.messages.append(msg)
+								self.send_command(msg)
+					   
+						#thread_print(self,str(self.messages))
+					   
 						thread_print(self,"num=%d, recv = %d" % (num,len(self.messages)))
-						assert(num == len(self.messages))
 					   
 						#OM
 						for m in self.messages :
@@ -133,7 +129,7 @@ class general(threading.Thread):
 					   
 		def recv(self) :
 				msg = None
-				while msg is None and general.STAGE == 1 :
+				while msg is None :
 						if self.mutex.acquire():
 								if(len(self.queue) > 0):
 										msg = self.queue.pop(0)
@@ -141,7 +137,7 @@ class general(threading.Thread):
 						if msg is None :
 								time.sleep(0.01)
 			   
-				if msg and verbose : thread_print(self,'Recv: ' + msg)
+				if verbose : thread_print(self,'Recv: ' + msg)
 			   
 				return msg
 					   
@@ -179,8 +175,5 @@ if __name__ == '__main__':
 				generals.append(g)
 				g.start()
 	   
-		time.sleep(80)
-		general.STAGE = 2
-
 		for g in generals :
 				g.join()
